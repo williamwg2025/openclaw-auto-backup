@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "backupDir": "/root/.openclaw/backups",
+  "maxBackups": 30,
+  "autoBackup": true,
+  "watchFiles": [
+    "/root/.openclaw/openclaw.json",
+    "/root/.openclaw/workspace/SESSION-STATE.md",
+    "/root/.openclaw/workspace/MEMORY.md",
+    "/root/.openclaw/workspace/USER.md",
+    "/root/.openclaw/workspace/SOUL.md",
+    "/root/.openclaw/workspace/AGENTS.md",
+    "/root/.openclaw/workspace/HEARTBEAT.md",
+    "/root/.openclaw/workspace/IDENTITY.md",
+    "/root/.openclaw/workspace/TOOLS.md",
+    "/root/.openclaw/workspace/ONBOARDING.md",
+    "/root/.openclaw/workspace/proactive-tracker.md"
+  ],
+  "excludePatterns": [
+    "*.log",
+    "*.tmp",
+    "cache/*",
+    "skills/*",
+    "memory/working-buffer.md"
+  ],
+  "compression": true,
+  "encryption": false,
+  "notifyOnBackup": true,
+  "notifyChannel": "feishu"
+}
