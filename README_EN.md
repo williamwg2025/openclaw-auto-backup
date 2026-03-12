@@ -19,7 +19,7 @@ Automatic backup for OpenClaw configuration files.
 ## 🚀 Installation
 
 ```bash
-cd /root/.openclaw/workspace/skills
+cd ~/.openclaw/workspace/skills
 git clone https://github.com/williamwg2025/openclaw-auto-backup.git auto-backup
 chmod +x auto-backup/scripts/*.py
 ```
@@ -80,10 +80,10 @@ openclaw cron list
 ## 📋 Configuration
 
 Backup config:
-`/root/.openclaw/workspace/skills/auto-backup/config/backup-config.json`
+`~/.openclaw/workspace/skills/auto-backup/config/backup-config.json`
 
 Backup location:
-`/root/.openclaw/backups/`
+`~/.openclaw/backups/`
 
 ---
 
