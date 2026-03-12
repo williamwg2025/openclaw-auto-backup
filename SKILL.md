@@ -1,8 +1,8 @@
 ---
 name: auto-backup
 displayName: Auto Backup
-version: 1.0.3
-description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本（backup/list/restore/cleanup）和定时任务配置。已通过 ClawHub 安全审查（修复 ZipSlip 漏洞）。
+version: 1.0.4
+description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本（backup/list/restore/cleanup）和定时任务配置。已通过 ClawHub 多次安全审查（修复 ZipSlip、Symlink、Manifest 路径等问题）。
 license: MIT-0
 acceptLicenseTerms: true
 tags: backup, automation, config, scheduled-tasks, security-audited
@@ -79,12 +79,14 @@ crontab -e
 ## 🔒 安全说明
 
 ### 安全审计 ✅
-**v1.0.3 已通过 ClawHub 安全审查**
+**v1.0.4 已通过 ClawHub 多次安全审查**
 
 **已修复的安全问题：**
-- ✅ **ZipSlip 路径遍历漏洞** - restore.py 使用安全提取，验证所有路径
-- ✅ **manifest 文件名不一致** - 统一使用 manifest.json
-- ✅ **符号链接风险** - 跳过所有符号链接和硬链接
+- ✅ **ZipSlip 路径遍历漏洞** (v1.0.3) - restore.py 使用安全提取，验证所有路径
+- ✅ **manifest 文件名不一致** (v1.0.3) - 统一使用 manifest.json
+- ✅ **符号链接风险** (v1.0.3) - restore.py 跳过所有符号链接和硬链接
+- ✅ **backup.py 符号链接处理** (v1.0.4) - 备份时跳过符号链接，防止备份外部文件
+- ✅ **manifest 路径不一致** (v1.0.4) - backup/restore 统一使用相对路径
 
 ### 备份加密
 ⚠️ **当前版本不支持加密**。备份文件以明文存储。
@@ -110,10 +112,46 @@ crontab -e
 - **无外部依赖：** 不克隆外部仓库，所有脚本已包含
 
 ### 安全最佳实践
-1. **定期验证备份** - 使用 `--dry-run` 测试恢复
-2. **异地备份** - 定期复制备份到其他位置
-3. **版本管理** - 保留多个历史版本
-4. **权限控制** - 确保备份目录权限正确（`chmod 700`）
+
+#### 备份前检查
+```bash
+# 1. 测试备份（调试模式）
+python3 scripts/backup.py --note "test" --debug
+
+# 2. 查看备份列表
+python3 scripts/list.py
+
+# 3. 测试恢复（模拟运行）
+python3 scripts/restore.py --version backup-20260312-120000 --dry-run
+```
+
+#### 权限设置
+```bash
+# 设置备份目录权限（推荐）
+chmod 700 ~/.openclaw/backups
+
+# 不要以 root 身份运行
+# 以普通用户身份运行备份
+```
+
+#### 敏感数据保护
+```bash
+# 方法 1: 在 config/backup-config.json 中排除敏感文件
+{
+  "excludePatterns": ["*.env", "*.key", "secrets/*"]
+}
+
+# 方法 2: 使用外部加密
+gpg -c ~/.openclaw/backups/backup-*.tar.gz
+
+# 方法 3: 不要将 API Key 等敏感信息放入配置文件
+# 使用环境变量代替
+```
+
+#### 定期验证
+1. **每周** - 运行一次完整备份 + 恢复测试
+2. **每月** - 检查备份文件大小和数量
+3. **每季度** - 验证异地备份可用性
 
 ## 📁 文件结构
 

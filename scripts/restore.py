@@ -174,24 +174,35 @@ def restore_backup(version: str, dry_run: bool = False):
         restored = 0
         
         for file_info in manifest.get('files', []):
-            # 安全处理文件路径
-            file_name = os.path.basename(file_info) if isinstance(file_info, str) else file_info.get('name', '')
-            src = temp_dir / file_name
-            dst = WORKSPACE / file_name
+            # 处理路径（支持相对路径）
+            if isinstance(file_info, str):
+                rel_path = file_info
+            else:
+                rel_path = file_info.get('path', file_info.get('name', ''))
+            
+            # 安全检查：确保路径不包含 ..
+            if '..' in rel_path or os.path.isabs(rel_path):
+                log_warning(f"跳过不安全路径：{rel_path}")
+                continue
+            
+            src = temp_dir / rel_path
+            dst = WORKSPACE / rel_path
             
             if src.exists():
                 # 备份当前版本
                 if dst.exists():
                     backup_current = dst.with_suffix(f".backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+                    backup_current.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(dst, backup_current)
                     log_info(f"已备份当前版本：{backup_current.name}")
                 
                 # 恢复文件
+                dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, dst)
-                log_success(f"已恢复：{file_name}")
+                log_success(f"已恢复：{rel_path}")
                 restored += 1
             else:
-                log_warning(f"文件不存在，跳过：{file_name}")
+                log_warning(f"文件不存在，跳过：{rel_path}")
         
         log_success(f"恢复完成！共恢复 {restored}/{manifest.get('fileCount', len(manifest.get('files', [])))} 个文件")
         log_warning("建议重启 OpenClaw 网关以应用恢复的配置")

@@ -56,6 +56,13 @@ def create_backup_dir(backup_dir: Path) -> Path:
     return backup_path
 
 def backup_files(watch_files: list, backup_path: Path, exclude_patterns: list) -> list:
+    """
+    备份文件
+    
+    Security:
+    - 跳过符号链接（防止备份外部文件）
+    - 使用相对路径存储 manifest
+    """
     backed_up = []
     for file_pattern in watch_files:
         import glob
@@ -65,25 +72,47 @@ def backup_files(watch_files: list, backup_path: Path, exclude_patterns: list) -
             if not file_path.exists():
                 log_warning(f"文件不存在，跳过：{file_path}")
                 continue
+            
+            # Security: 跳过符号链接
+            if file_path.is_symlink():
+                log_warning(f"跳过符号链接：{file_path} (可能指向外部文件)")
+                continue
+            
             excluded = any(pattern in str(file_path) for pattern in exclude_patterns)
             if excluded:
                 continue
             try:
                 if file_path.is_file():
-                    rel_path = file_path.relative_to(OPENCLAW_HOME) if str(file_path).startswith(str(OPENCLAW_HOME)) else file_path.name
+                    # 使用相对路径（相对于 OPENCLAW_HOME）
+                    if str(file_path).startswith(str(OPENCLAW_HOME)):
+                        rel_path = file_path.relative_to(OPENCLAW_HOME)
+                    else:
+                        rel_path = file_path.name
+                    
                     dest_path = backup_path / rel_path
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(file_path, dest_path)
-                    backed_up.append(str(file_path))
-                    log_info(f"已备份：{file_path.name}")
+                    
+                    # 记录相对路径到 manifest（与 restore.py 一致）
+                    backed_up.append(str(rel_path))
+                    log_info(f"已备份：{rel_path}")
+                    
                 elif file_path.is_dir():
+                    # 跳过符号链接目录
+                    if file_path.is_symlink():
+                        log_warning(f"跳过符号链接目录：{file_path}")
+                        continue
+                    
                     rel_path = file_path.relative_to(OPENCLAW_HOME) if str(file_path).startswith(str(OPENCLAW_HOME)) else file_path.name
                     dest_path = backup_path / rel_path
                     if dest_path.exists():
                         shutil.rmtree(dest_path)
-                    shutil.copytree(file_path, dest_path)
-                    backed_up.append(str(file_path))
-                    log_info(f"已备份目录：{file_path.name}")
+                    
+                    # 使用 symlinks=False 避免复制符号链接
+                    shutil.copytree(file_path, dest_path, symlinks=False)
+                    backed_up.append(str(rel_path))
+                    log_info(f"已备份目录：{rel_path}")
+                    
             except Exception as e:
                 log_error(f"备份失败 {file_path}: {e}")
     return backed_up
