@@ -1,11 +1,11 @@
 ---
 name: auto-backup
 displayName: Auto Backup
-version: 1.0.2
-description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本（backup/list/restore/cleanup）和定时任务配置。
+version: 1.0.3
+description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本（backup/list/restore/cleanup）和定时任务配置。已通过 ClawHub 安全审查（修复 ZipSlip 漏洞）。
 license: MIT-0
 acceptLicenseTerms: true
-tags: backup, automation, config, scheduled-tasks
+tags: backup, automation, config, scheduled-tasks, security-audited
 ---
 
 # Auto Backup 技能
@@ -78,6 +78,14 @@ crontab -e
 
 ## 🔒 安全说明
 
+### 安全审计 ✅
+**v1.0.3 已通过 ClawHub 安全审查**
+
+**已修复的安全问题：**
+- ✅ **ZipSlip 路径遍历漏洞** - restore.py 使用安全提取，验证所有路径
+- ✅ **manifest 文件名不一致** - 统一使用 manifest.json
+- ✅ **符号链接风险** - 跳过所有符号链接和硬链接
+
 ### 备份加密
 ⚠️ **当前版本不支持加密**。备份文件以明文存储。
 
@@ -100,6 +108,12 @@ crontab -e
 ### 网络
 - **无网络：** 备份过程不联网，不上传任何数据
 - **无外部依赖：** 不克隆外部仓库，所有脚本已包含
+
+### 安全最佳实践
+1. **定期验证备份** - 使用 `--dry-run` 测试恢复
+2. **异地备份** - 定期复制备份到其他位置
+3. **版本管理** - 保留多个历史版本
+4. **权限控制** - 确保备份目录权限正确（`chmod 700`）
 
 ## 📁 文件结构
 

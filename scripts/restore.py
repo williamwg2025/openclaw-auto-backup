@@ -4,6 +4,8 @@ Auto Backup - Restore Script
 恢复备份的配置文件
 
 Usage: python3 restore.py --version backup-20260310-195545 [--dry-run]
+
+Security: 防止 ZipSlip 路径遍历攻击
 """
 
 import json
@@ -58,6 +60,65 @@ def list_backups():
     
     return sorted(backups, key=lambda x: x['mtime'], reverse=True)
 
+def is_safe_path(base_path: Path, target_path: Path) -> bool:
+    """
+    检查目标路径是否安全（防止 ZipSlip 攻击）
+    
+    Security: 确保提取的文件不会跳出目标目录
+    """
+    try:
+        # 解析绝对路径
+        base_resolved = base_path.resolve()
+        target_resolved = target_path.resolve()
+        
+        # 检查目标路径是否在基础路径内
+        return str(target_resolved).startswith(str(base_resolved))
+    except Exception:
+        return False
+
+def safe_extract(tar: tarfile.TarFile, dest_path: Path) -> list:
+    """
+    安全提取 tar 文件（防止 ZipSlip 攻击）
+    
+    Security:
+    1. 验证每个成员的路径
+    2. 跳过绝对路径和包含 .. 的路径
+    3. 确保提取后路径在目标目录内
+    """
+    extracted = []
+    
+    for member in tar.getmembers():
+        member_path = dest_path / member.name
+        
+        # 安全检查 1: 跳过绝对路径
+        if os.path.isabs(member.name):
+            log_warning(f"跳过绝对路径：{member.name}")
+            continue
+        
+        # 安全检查 2: 跳过包含 .. 的路径
+        if '..' in member.name:
+            log_warning(f"跳过危险路径：{member.name}")
+            continue
+        
+        # 安全检查 3: 验证解析后的路径
+        if not is_safe_path(dest_path, member_path):
+            log_warning(f"跳过不安全路径：{member.name}")
+            continue
+        
+        # 安全检查 4: 跳过符号链接（防止链接到外部文件）
+        if member.issym() or member.islnk():
+            log_warning(f"跳过符号链接：{member.name}")
+            continue
+        
+        # 安全提取
+        try:
+            tar.extract(member, dest_path)
+            extracted.append(member.name)
+        except Exception as e:
+            log_error(f"提取失败 {member.name}: {e}")
+    
+    return extracted
+
 def restore_backup(version: str, dry_run: bool = False):
     """恢复指定版本的备份"""
     backup_file = BACKUP_DIR / version
@@ -93,27 +154,30 @@ def restore_backup(version: str, dry_run: bool = False):
     temp_dir.mkdir(parents=True, exist_ok=True)
     
     try:
-        # 解压备份
+        # 安全解压备份
         log_info("解压备份文件...")
         with tarfile.open(backup_file, 'r:gz') as tar:
-            tar.extractall(path=temp_dir)
+            extracted = safe_extract(tar, temp_dir)
+            log_info(f"安全提取 {len(extracted)} 个文件")
         
-        # 读取清单
-        manifest_file = temp_dir / "backup-manifest.json"
+        # 读取清单（修复：使用 manifest.json 而非 backup-manifest.json）
+        manifest_file = temp_dir / "manifest.json"
         if not manifest_file.exists():
-            log_error("备份清单不存在")
+            log_error("备份清单不存在 (manifest.json)")
             sys.exit(1)
         
         with open(manifest_file, 'r', encoding='utf-8') as f:
             manifest = json.load(f)
         
         # 恢复文件
-        log_info(f"恢复 {len(manifest['files'])} 个文件...")
+        log_info(f"恢复 {manifest.get('fileCount', len(manifest.get('files', [])))} 个文件...")
         restored = 0
         
-        for file_info in manifest['files']:
-            src = temp_dir / file_info['name']
-            dst = WORKSPACE / file_info['name']
+        for file_info in manifest.get('files', []):
+            # 安全处理文件路径
+            file_name = os.path.basename(file_info) if isinstance(file_info, str) else file_info.get('name', '')
+            src = temp_dir / file_name
+            dst = WORKSPACE / file_name
             
             if src.exists():
                 # 备份当前版本
@@ -124,12 +188,12 @@ def restore_backup(version: str, dry_run: bool = False):
                 
                 # 恢复文件
                 shutil.copy2(src, dst)
-                log_success(f"已恢复：{file_info['name']}")
+                log_success(f"已恢复：{file_name}")
                 restored += 1
             else:
-                log_warning(f"文件不存在，跳过：{file_info['name']}")
+                log_warning(f"文件不存在，跳过：{file_name}")
         
-        log_success(f"恢复完成！共恢复 {restored}/{len(manifest['files'])} 个文件")
+        log_success(f"恢复完成！共恢复 {restored}/{manifest.get('fileCount', len(manifest.get('files', [])))} 个文件")
         log_warning("建议重启 OpenClaw 网关以应用恢复的配置")
         
     except Exception as e:
