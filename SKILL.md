@@ -1,8 +1,8 @@
 ---
 name: auto-backup
 displayName: Auto Backup
-version: 1.0.1
-description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本和定时任务配置。
+version: 1.0.2
+description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本（backup/list/restore/cleanup）和定时任务配置。
 license: MIT-0
 acceptLicenseTerms: true
 tags: backup, automation, config, scheduled-tasks
@@ -14,12 +14,14 @@ tags: backup, automation, config, scheduled-tasks
 
 ## 📦 安装
 
-```bash
-# 克隆技能
-git clone https://github.com/williamwg2025/openclaw-auto-backup.git auto-backup
-cd auto-backup
+本技能已包含所有脚本文件，无需外部克隆。
 
-# 添加执行权限
+```bash
+# 如果使用 ClawHub 安装（推荐）
+npx clawhub install auto-backup
+
+# 或手动添加执行权限
+cd ~/.openclaw/workspace/skills/auto-backup
 chmod +x scripts/*.py
 ```
 
@@ -76,10 +78,28 @@ crontab -e
 
 ## 🔒 安全说明
 
-- **本地存储：** 备份仅存储在本地 `~/.openclaw/backups/`
-- **无加密：** 当前版本不加密备份（敏感信息请自行加密）
-- **权限：** 需要读取 `~/.openclaw/` 目录权限
+### 备份加密
+⚠️ **当前版本不支持加密**。备份文件以明文存储。
+
+**建议：**
+- 敏感信息（API Key、密码等）不要放在配置文件中
+- 可使用外部工具加密备份目录：
+  ```bash
+  # 使用 gpg 加密备份
+  gpg -c ~/.openclaw/backups/backup-*.tar.gz
+  ```
+
+### 存储位置
+- **本地存储：** 备份仅存储在 `~/.openclaw/backups/`
+- **路径说明：** 使用 `~` 而非 `/root`，适配不同用户
+
+### 权限
+- **需要权限：** 读取 `~/.openclaw/` 目录
+- **无需 root：** 以当前用户身份运行
+
+### 网络
 - **无网络：** 备份过程不联网，不上传任何数据
+- **无外部依赖：** 不克隆外部仓库，所有脚本已包含
 
 ## 📁 文件结构
 
