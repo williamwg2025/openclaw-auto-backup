@@ -2,6 +2,8 @@
 """
 Auto Backup Script
 Usage: python3 backup.py [--note "备注信息"]
+
+注意：使用绝对路径，确保 cron 执行时正常工作
 """
 
 import json
@@ -11,6 +13,11 @@ import sys
 import tarfile
 from datetime import datetime
 from pathlib import Path
+
+# 确保使用绝对路径
+SCRIPT_DIR = Path(__file__).resolve().parent
+WORKSPACE = Path.home() / ".openclaw" / "workspace"
+BACKUP_DIR = Path.home() / ".openclaw" / "backups"
 
 class Colors:
     BLUE = '\033[0;34m'
@@ -106,19 +113,32 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='备份 OpenClaw 配置文件')
     parser.add_argument('--note', type=str, default='手动备份', help='备份备注')
+    parser.add_argument('--debug', action='store_true', help='调试模式')
     args = parser.parse_args()
     
     print_header("📦 Auto Backup")
+    
+    # 调试信息
+    if args.debug:
+        log_info(f"脚本目录：{SCRIPT_DIR}")
+        log_info(f"工作区：{WORKSPACE}")
+        log_info(f"备份目录：{BACKUP_DIR}")
+        log_info(f"Python: {sys.executable}")
+        log_info(f"当前目录：{os.getcwd()}")
+    
     config = load_config()
     
     if not config.get('enabled', True):
         log_warning("自动备份已禁用")
         return
     
-    backup_dir = Path(config.get('backupDir', str(OPENCLAW_HOME / "backups")))
+    backup_dir = Path(config.get('backupDir', str(BACKUP_DIR)))
     watch_files = config.get('watchFiles', [])
     exclude_patterns = config.get('excludePatterns', [])
     compression = config.get('compression', True)
+    
+    # 确保备份目录存在
+    backup_dir.mkdir(parents=True, exist_ok=True)
     
     log_info(f"备份目录：{backup_dir}")
     log_info(f"监听文件：{len(watch_files)} 个")
