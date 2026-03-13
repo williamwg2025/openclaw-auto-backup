@@ -1,11 +1,24 @@
 ---
-name: auto-backup
-displayName: Auto Backup
+name: openclaw-auto-backup
+displayName: OpenClaw Auto Backup - 自动备份技能
 version: 1.0.4
-description: 自动备份 OpenClaw 配置文件，支持本地存储、版本管理、一键恢复。包含完整的 Python 脚本（backup/list/restore/cleanup）和定时任务配置。已通过 ClawHub 多次安全审查（修复 ZipSlip、Symlink、Manifest 路径等问题）。
+description: |
+  OpenClaw 自动备份技能 - 定时备份配置文件，防止数据丢失。
+  支持版本管理、一键恢复、定时任务。包含完整 Python 脚本（backup/restore/list/cleanup）。
+  已通过 ClawHub 多次安全审查（ZipSlip/Symlink/Manifest 修复）。
+  关键词：openclaw, backup, automation, scheduled, restore, version, config, safety
 license: MIT-0
 acceptLicenseTerms: true
-tags: backup, automation, config, scheduled-tasks, security-audited
+tags:
+  - openclaw
+  - backup
+  - automation
+  - scheduled-tasks
+  - config-management
+  - security-audited
+  - production-ready
+  - restore
+  - version-control
 ---
 
 # Auto Backup 技能
